@@ -6,3 +6,5 @@ const themes = {
 };
 
 export default themes;
+
+// Предположительно тут нужно написать итератор
