@@ -27,15 +27,9 @@ export function* characterGenerator(allowedTypes, maxLevel) {
  * @param characterCount количество персонажей, которое нужно сформировать
  * @returns экземпляр Team, хранящий экземпляры персонажей. Количество персонажей в команде - characterCount
  * */
-export function generateTeam(allowedTypes, maxLevel, characterCount) {
-  // TODO: write logic here
-
-  const charactersArr = [];
+export function generateTeam(allowedTypes, maxLevel, characterCount, isEnemy) {
+  const team = [];
   const getCharacter = characterGenerator(allowedTypes, maxLevel);
-  let i = 0;
-  while (i < characterCount) {
-    charactersArr.push(getCharacter.next().value);
-    i += 1;
-  }
-  return new Team(charactersArr);
+  for (let i = 0; i < characterCount; i += 1) team.push(getCharacter.next().value);
+  return new Team(team, isEnemy);
 }
