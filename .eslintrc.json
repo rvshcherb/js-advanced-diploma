@@ -20,6 +20,7 @@
       {
         "allowAfterThis": true
       }
-    ]
+    ],
+    "no-param-reassign": ["error", { "props": false }]
   }
 }

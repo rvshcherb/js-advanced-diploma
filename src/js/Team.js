@@ -17,10 +17,10 @@ export default class Team {
   // TODO: write your logic here
   constructor(characters, isEnemy) {
     this.characters = characters;
-    this.positionedCharachters = [];
     this.isEnemy = isEnemy;
     this.moveRange = null;
     this.attackRange = null;
+    this.selectedUnit = null;
   }
 
   calcMoveRange(unit) {
@@ -30,10 +30,12 @@ export default class Team {
     let offset;
 
     switch (type) {
-      case 'swordsman' || 'daemon':
+      case 'swordsman':
+      case 'daemon':
         offset = 4;
         break;
-      case 'bowman' || 'vampire':
+      case 'bowman':
+      case 'vampire':
         offset = 2;
         break;
       default:
@@ -109,6 +111,7 @@ export default class Team {
   generatePositions() {
     const availablePositionSet = new Set();
     const positions = availablePositionSet[Symbol.iterator]();
+    const positionedCharachters = [];
     let teamSide = 0;
 
     if (this.isEnemy) teamSide = 6;
@@ -119,43 +122,36 @@ export default class Team {
     }
 
     for (let i = 0; i < this.characters.length; i += 1) {
-      this.positionedCharachters.push(new PositionedCharacter(this.characters[i], positions.next().value));
+      positionedCharachters.push(new PositionedCharacter(this.characters[i], positions.next().value));
     }
-    return this.positionedCharachters;
+    this.characters = positionedCharachters;
   }
 
-  static checkTeam(unit) {
-    const teamPlayer = ['magician', 'swordsman', 'bowman'].some((item) => item === unit.character.type);
-    if (teamPlayer) {
-      return 'player';
-    }
-    return 'computer';
-  }
-
-  static getUnit(arr, index) {
-    return arr.find((item) => item.position === index);
+  pickUnit(index) {
+    return this.characters.find((item) => item.position === index);
   }
 
   static calcDamage(atacker, target) {
-    return (atacker.character.attack - target.character.defence, atacker.character.attack * 0.1);
+    return Math.max(atacker.character.attack - target.character.defence, atacker.character.attack * 0.1);
   }
 
-  ai(enemyTeam) {
-    console.log('Check atack position');
-    const enemyIndexArr = enemyTeam.positionedCharachters.map((item) => item.position);
-    // const enemyIndexArr = enemyTeam.map((item) => item.position);
-    // console.log(`Индексы команды врага: ${enemyIndexArr}`);
-    const attacker = this.positionedCharachters.find((unit) => {
+  aiAttack(enemyTeam) {
+    const targetIndexArr = enemyTeam.characters.map((item) => item.position);
+    const attacker = this.characters.find((unit) => {
       this.calcActions(unit);
-      // console.log(`Позиция атакера: ${unit.position}`);
-      // console.log(` Радиус атаки: ${this.attackRange}`);
-      return enemyIndexArr.some((item) => this.attackRange.includes(item));
+      return targetIndexArr.some((item) => this.attackRange.includes(item));
     });
-    // console.log(attacker);
-    if (attacker) {
-      const targetIndex = enemyIndexArr.find((position) => this.attackRange.includes(position));
-      const target = Team.getUnit(enemyTeam.positionedCharachters, targetIndex);
-      console.log(`${attacker.character.type} from position ${attacker.position} attacked ${target.character.type} on position ${target.position}`);
-    }
+    const targetIndex = targetIndexArr.find((position) => this.attackRange.includes(position));
+    const target = enemyTeam.pickUnit(targetIndex);
+
+    return { attacker, target };
+  }
+
+  aiMove() {
+    const character = this.characters[Math.floor(Math.random() * this.characters.length)];
+    this.calcActions(character);
+    const position = this.moveRange[Math.floor(Math.random() * this.moveRange.length)];
+
+    return { character, position };
   }
 }
