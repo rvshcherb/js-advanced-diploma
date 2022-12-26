@@ -1,14 +1,8 @@
 import themes from "./themes";
-import { generateTeam } from "./generators";
 import Team from "./Team";
+import MyTeam from "./MyTeam";
+import ComputerTeam from "./ComputerTeam";
 import cursors from "./cursors";
-
-import Bowman from "./characters/Bowman";
-import Swardsman from "./characters/Swordsman";
-import Magician from "./characters/Magician";
-import Daemon from "./characters/Daemon";
-import Vampire from "./characters/Vampire";
-import Undead from "./characters/Undead";
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -17,16 +11,22 @@ export default class GameController {
     this.teamPlayer = null;
     this.teamComputer = null;
     this.selectedUnit = null;
+    this.level = 0;
   }
 
   init() {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
-    this.teamPlayer = generateTeam([Bowman, Swardsman, Magician], 2, 4, false);
-    this.teamComputer = generateTeam([Vampire, Daemon, Undead], 2, 4, true);
-    [this.teamPlayer, this.teamComputer].forEach((team) => team.generatePositions());
 
-    this.gamePlay.drawUi(themes.prairie);
+    this.teamPlayer = new MyTeam();
+    this.teamComputer = new ComputerTeam();
+
+    [this.teamPlayer, this.teamComputer].forEach((team) => {
+      team.createTeam();
+      team.placeCharacters(team.unpositionedCharacters);
+    });
+
+    this.gamePlay.drawUi(Object.values(themes)[this.level]);
     this.refresh();
 
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
@@ -38,30 +38,51 @@ export default class GameController {
     this.gamePlay.redrawPositions(this.teamPlayer.characters.concat(this.teamComputer.characters));
   }
 
-  attack(attacker, target) {
+  levelUp() {
+    if (this.level < 3) {
+      this.level += 1;
+      this.teamComputer.createTeam();
+      this.teamComputer.placeCharacters(this.teamComputer.unpositionedCharacters);
+      this.teamPlayer.upgrade();
+      this.gamePlay.drawUi(Object.values(themes)[this.level]);
+      this.refresh();
+    }
+  }
+
+  attack(attacker, target, targetTeam) {
     const damage = Team.calcDamage(attacker, target);
     target.character.health -= damage;
     this.gamePlay.showDamage(target.position, damage)
       .then(() => [attacker.position, target.position].forEach((item) => this.gamePlay.deselectCell(item)))
+      .then(() => Team.checkIfUnitDead(target, targetTeam))
+      .then(() => targetTeam.checkIfTeamDead())
+      .then((result) => {
+        if (targetTeam === this.teamComputer) {
+          if (result) this.levelUp();
+        } else if (result) {
+          console.log('Game Over');
+        }
+      })
       .then(() => this.refresh());
   }
 
   move() {
     const { character, position } = this.teamComputer.aiMove();
-    character.position = position;
-    this.refresh();
+    if (character) {
+      character.position = position;
+      this.refresh();
+    }
   }
 
   implementAI() {
     setTimeout(() => {
       const { attacker, target } = this.teamComputer.aiAttack(this.teamPlayer);
-      if (attacker || target) {
+      if (attacker) {
         this.gamePlay.selectCell(attacker.position);
         this.gamePlay.selectCell(target.position, 'red');
-        this.attack(attacker, target);
+        this.attack(attacker, target, this.teamPlayer);
       } else {
         this.move();
-        console.log('Противник куда-то ходит');
       }
     }, 1000);
   }
@@ -80,7 +101,7 @@ export default class GameController {
           // атака пользователя
           if (this.teamPlayer.attackRange.includes(index)) {
             const targetObj = this.teamComputer.pickUnit(index);
-            this.attack(this.selectedUnit, targetObj);
+            this.attack(this.selectedUnit, targetObj, this.teamComputer);
             this.selectedUnit = null;
 
             // Действие компьютера

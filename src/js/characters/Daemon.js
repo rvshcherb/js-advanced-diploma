@@ -1,7 +1,12 @@
 import Character from "../Character";
 
 export default class Daemon extends Character {
-  attack = 10;
-  defence = 10;
-  type = 'daemon';
+  constructor(level) {
+    super(level);
+    this.attack = 10;
+    this.defence = 10;
+    this.type = 'daemon';
+    this.moveOffset = 1;
+    this.attackOffset = 4;
+  }
 }

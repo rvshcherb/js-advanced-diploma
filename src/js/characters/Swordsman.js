@@ -1,7 +1,12 @@
 import Character from "../Character";
 
 export default class Swardsman extends Character {
-  attack = 40;
-  defence = 10;
-  type = 'swordsman';
+  constructor(level) {
+    super(level);
+    this.attack = 40;
+    this.defence = 10;
+    this.type = 'swordsman';
+    this.moveOffset = 4;
+    this.attackOffset = 1;
+  }
 }

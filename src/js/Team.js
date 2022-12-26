@@ -15,9 +15,9 @@ import PositionedCharacter from "./PositionedCharacter";
  * */
 export default class Team {
   // TODO: write your logic here
-  constructor(characters, isEnemy) {
-    this.characters = characters;
-    this.isEnemy = isEnemy;
+  constructor() {
+    this.characters = null;
+    this.unpositionedCharacters = null;
     this.moveRange = null;
     this.attackRange = null;
     this.selectedUnit = null;
@@ -25,24 +25,10 @@ export default class Team {
 
   calcMoveRange(unit) {
     const stepsArr = [];
-    const { type } = unit.character;
+    const { moveOffset } = unit.character;
     const index = unit.position;
-    let offset;
 
-    switch (type) {
-      case 'swordsman':
-      case 'daemon':
-        offset = 4;
-        break;
-      case 'bowman':
-      case 'vampire':
-        offset = 2;
-        break;
-      default:
-        offset = 1;
-    }
-
-    for (let i = 1; i <= offset; i += 1) {
+    for (let i = 1; i <= moveOffset; i += 1) {
       stepsArr.push(index + 8 * i);
       stepsArr.push(index - 8 * i);
 
@@ -64,28 +50,14 @@ export default class Team {
 
   calcAttackRange(unit) {
     const attackArr = [];
-    const { type } = unit.character;
+    const { attackOffset } = unit.character;
     const index = unit.position;
-    let offset;
 
-    switch (type) {
-      case 'magician':
-      case 'daemon':
-        offset = 4;
-        break;
-      case 'bowman':
-      case 'vampire':
-        offset = 2;
-        break;
-      default:
-        offset = 1;
-    }
-
-    for (let i = 1; i <= offset; i += 1) {
+    for (let i = 1; i <= attackOffset; i += 1) {
       attackArr.push(index + 8 * i);
       attackArr.push(index - 8 * i);
 
-      for (let j = 1; j <= offset; j += 1) {
+      for (let j = 1; j <= attackOffset; j += 1) {
         if (Math.floor(index / 8) === Math.floor((index + i) / 8)) { // Условие проверки переполнения ходов по правой границе игрового поля
           attackArr.push(index + i);
           attackArr.push((index + i) + 8 * j);
@@ -104,54 +76,49 @@ export default class Team {
   }
 
   calcActions(unit) {
-    this.calcMoveRange(unit);
-    this.calcAttackRange(unit);
+    if (this.characters.length > 0) {
+      this.calcMoveRange(unit);
+      this.calcAttackRange(unit);
+    }
   }
 
-  generatePositions() {
+  generatePositions(team) {
     const availablePositionSet = new Set();
     const positions = availablePositionSet[Symbol.iterator]();
     const positionedCharachters = [];
-    let teamSide = 0;
 
-    if (this.isEnemy) teamSide = 6;
-
-    while (availablePositionSet.size < this.characters.length) {
-      const random = (8 * Math.floor(Math.random() * 8) + teamSide) + (Math.floor(Math.random() * 2));
+    while (availablePositionSet.size < team.length) {
+      const random = (8 * Math.floor(Math.random() * 8) + this.sideOffset) + (Math.floor(Math.random() * 2));
       availablePositionSet.add(random);
     }
 
-    for (let i = 0; i < this.characters.length; i += 1) {
-      positionedCharachters.push(new PositionedCharacter(this.characters[i], positions.next().value));
+    for (let i = 0; i < team.length; i += 1) {
+      positionedCharachters.push(new PositionedCharacter(team[i], positions.next().value));
     }
-    this.characters = positionedCharachters;
+    return positionedCharachters;
+  }
+
+  placeCharacters(team) {
+    this.characters = this.generatePositions(team);
   }
 
   pickUnit(index) {
     return this.characters.find((item) => item.position === index);
   }
 
+  checkIfTeamDead() {
+    return this.characters.length <= 0;
+  }
+
+  static checkIfUnitDead(unit, targetTeam) {
+    if (unit.character.health <= 0) {
+      const targetIndex = targetTeam.characters.findIndex((item) => item.position === unit.position);
+      targetTeam.characters.splice(targetIndex, 1);
+      console.log(targetTeam);
+    }
+  }
+
   static calcDamage(atacker, target) {
     return Math.max(atacker.character.attack - target.character.defence, atacker.character.attack * 0.1);
-  }
-
-  aiAttack(enemyTeam) {
-    const targetIndexArr = enemyTeam.characters.map((item) => item.position);
-    const attacker = this.characters.find((unit) => {
-      this.calcActions(unit);
-      return targetIndexArr.some((item) => this.attackRange.includes(item));
-    });
-    const targetIndex = targetIndexArr.find((position) => this.attackRange.includes(position));
-    const target = enemyTeam.pickUnit(targetIndex);
-
-    return { attacker, target };
-  }
-
-  aiMove() {
-    const character = this.characters[Math.floor(Math.random() * this.characters.length)];
-    this.calcActions(character);
-    const position = this.moveRange[Math.floor(Math.random() * this.moveRange.length)];
-
-    return { character, position };
   }
 }

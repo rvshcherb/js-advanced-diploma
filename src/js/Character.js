@@ -13,7 +13,7 @@
  * vampire
  */
 export default class Character {
-  constructor(level, type = 'generic') {
+  constructor(level = 1, type = 'generic') {
     this.level = level;
     this.attack = 0;
     this.defence = 0;
