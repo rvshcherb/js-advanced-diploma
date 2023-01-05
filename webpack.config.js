@@ -14,6 +14,7 @@ module.exports = {
   mode: mode,
   output: {
     filename: '[name].[contenthash].js',
+    path: path.resolve(__dirname, 'docs'),
     assetModuleFilename: 'assets/[hash][ext][query]',
     clean: true,
   },
