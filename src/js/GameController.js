@@ -3,6 +3,7 @@ import Team from "./Team";
 import MyTeam from "./MyTeam";
 import ComputerTeam from "./ComputerTeam";
 import cursors from "./cursors";
+import Character from "./Character";
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -18,6 +19,22 @@ export default class GameController {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
 
+    this.newGame();
+
+    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
+    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
+    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+
+    this.gamePlay.addNewGameListener(this.onNewGameClick.bind(this));
+    this.gamePlay.addSaveGameListener(this.onSaveGameClick.bind(this));
+    this.gamePlay.addLoadGameListener(this.onLoadGameClick.bind(this));
+  }
+
+  refresh() {
+    this.gamePlay.redrawPositions(this.teamPlayer.characters.concat(this.teamComputer.characters));
+  }
+
+  newGame() {
     this.teamPlayer = new MyTeam();
     this.teamComputer = new ComputerTeam();
 
@@ -28,14 +45,6 @@ export default class GameController {
 
     this.gamePlay.drawUi(Object.values(themes)[this.level]);
     this.refresh();
-
-    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
-    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
-    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
-  }
-
-  refresh() {
-    this.gamePlay.redrawPositions(this.teamPlayer.characters.concat(this.teamComputer.characters));
   }
 
   levelUp() {
@@ -140,7 +149,7 @@ export default class GameController {
   onCellEnter(index) {
     if (this.gamePlay.cells[index].children.length > 0) {
       const hoverUnit = this.teamPlayer.pickUnit(index) ?? this.teamComputer.pickUnit(index);
-      // console.log(hoverUnit);
+      console.log(this.teamComputer);
       const {
         level,
         attack,
@@ -170,5 +179,35 @@ export default class GameController {
     this.gamePlay.hideCellTooltip(index);
     this.gamePlay.setCursor(cursors.auto);
     if (this.selectedUnit && index !== this.selectedUnit.position) this.gamePlay.deselectCell(index);
+  }
+
+  onNewGameClick() {
+    this.newGame();
+  }
+
+  onSaveGameClick() {
+    const gameState = {
+      teamPlayer: this.teamPlayer,
+      teamComputer: this.teamComputer,
+      level: this.level,
+    };
+
+    this.stateService.save(gameState);
+  }
+
+  onLoadGameClick() {
+    console.log('Game Loaded');
+    const gameState = this.stateService.load();
+    console.log(gameState);
+    this.teamPlayer.characters = gameState.teamPlayer.characters;
+    this.teamComputer.characters = gameState.teamComputer.characters;
+    console.log(this.teamPlayer);
+    Object.setPrototypeOf(this.teamPlayer, new MyTeam());
+    Object.setPrototypeOf(this.teamComputer, new ComputerTeam());
+    this.teamPlayer.characters.forEach((item) => Object.setPrototypeOf(item.character, new Character()));
+    this.teamComputer.characters.forEach((item) => Object.setPrototypeOf(item.character, new Character()));
+    this.level = gameState.level;
+    this.gamePlay.drawUi(Object.values(themes)[this.level]);
+    this.refresh();
   }
 }

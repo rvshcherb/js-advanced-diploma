@@ -20,8 +20,8 @@ export default class Character {
     this.health = 50;
     this.type = type;
 
-    if (new.target.name === 'Character') {
-      throw new Error('\'Character\' class usage is not allowed');
-    }
+    // if (new.target.name === 'Character') {
+    //   throw new Error('\'Character\' class usage is not allowed');
+    // }
   }
 }
